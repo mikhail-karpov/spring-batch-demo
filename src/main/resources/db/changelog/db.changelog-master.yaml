@@ -1,0 +1,4 @@
+databaseChangeLog:
+  - include:
+      file: create_batch_job_tables.sql
+      relativeToChangelogFile: true

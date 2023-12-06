@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15.2-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_DB: batch
+      POSTGRES_USER: batch
+      POSTGRES_PASSWORD: batch
+    ports:
+      - '5432:5432'

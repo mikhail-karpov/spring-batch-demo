@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: spring-batch-demo
+  main:
+    banner-mode: off
+  datasource:
+    url: jdbc:postgresql://localhost:5432/batch
+    username: batch
+    password: batch
+    driver-class-name: org.postgresql.Driver
+  liquibase:
+    change-log: classpath:/db/changelog/db.changelog-master.yaml
