@@ -2,6 +2,7 @@ package com.mikhailkarpov.springbatchdemo.billing;
 
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
@@ -15,6 +16,7 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.batch.item.file.builder.FlatFileItemWriterBuilder;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
@@ -34,10 +36,11 @@ public class BillingJobConfig {
     }
 
     @Bean
-    FlatFileItemReader<BillingData> billingDataFileReader() {
+    @StepScope
+    FlatFileItemReader<BillingData> billingDataFileReader(@Value("#{jobParameters['input.file']}") String inputFile) {
         return new FlatFileItemReaderBuilder<BillingData>()
                 .name("billingDataFileReader")
-                .resource(new FileSystemResource("staging/billing-2023-01.csv"))
+                .resource(new FileSystemResource(inputFile))
                 .delimited()
                 .names("dataYear", "dataMonth", "accountId", "phoneNumber", "dataUsage", "callDuration", "smsCount")
                 .targetType(BillingData.class)
@@ -69,20 +72,32 @@ public class BillingJobConfig {
     }
 
     @Bean
-    JdbcCursorItemReader<BillingData>  billingDataJdbcReader(DataSource dataSource) {
+    @StepScope
+    JdbcCursorItemReader<BillingData> billingDataJdbcReader(
+            @Value("#{jobParameters['data.year']}") Integer year,
+            @Value("#{jobParameters['data.month']}") Integer month,
+            DataSource dataSource) {
+
+        String sql = """
+                SELECT * FROM BILLING_DATA
+                WHERE DATA_YEAR = %d
+                AND DATA_MONTH = %d
+                """;
+
         return new JdbcCursorItemReaderBuilder<BillingData>()
                 .name("billingDataJdbcReader")
                 .dataSource(dataSource)
-                .sql("SELECT * FROM BILLING_DATA")
+                .sql(String.format(sql, year, month))
                 .rowMapper(new DataClassRowMapper<>(BillingData.class))
                 .build();
     }
 
     @Bean
-    FlatFileItemWriter<ReportingData> reportingDataFileWriter() {
+    @StepScope
+    FlatFileItemWriter<ReportingData> reportingDataFileWriter(@Value("#{jobParameters['output.file']}") String outputFile) {
         return new FlatFileItemWriterBuilder<ReportingData>()
                 .name("reportingDataFileWriter")
-                .resource(new FileSystemResource("staging/billing-report-2023-01.csv"))
+                .resource(new FileSystemResource(outputFile))
                 .delimited()
                 .names("billingData.dataYear", "billingData.dataMonth", "billingData.accountId", "billingData.phoneNumber", "billingData.dataUsage", "billingData.callDuration", "billingData.smsCount", "billingTotal")
                 .build();
